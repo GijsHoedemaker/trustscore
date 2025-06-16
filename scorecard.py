@@ -2,7 +2,7 @@ import subprocess
 import json
 import sys
 
-GITHUB_AUTH_TOKEN = "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"
+GITHUB_AUTH_TOKEN = "YOUR_TOKEN_HERE"
 
 def get_score(repo_url: str, full_score: bool) -> str:
     if repo_url is None:
