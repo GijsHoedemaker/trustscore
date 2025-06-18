@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 MAVEN_CENTRAL = "https://repo1.maven.org/maven2/"
 LIBRARIES_URL = "https://libraries.io/api/Maven/"
-API_KEY = "16bf19d6c1a317ef101cb8691d5fcec5" # USER NEEDS TO PROVIDE THEIR OWN
+API_KEY = "YOUR_API_KEY" # USER NEEDS TO PROVIDE THEIR OWN
 
 # Control flow:
 # 1 - Check input (groupID:artifactID)
