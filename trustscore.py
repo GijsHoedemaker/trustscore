@@ -49,70 +49,41 @@ def get_library_metadata(group_id: str, artifact_id: str):
     except (requests.RequestException, ET.ParseError) as e:
         print("whoops")
         return None
-    
-def get_maven_metadata(group_id: str, artifact_id: str) -> Optional[ET.Element]:
-    # Convert group_id to path format
-    group_path = group_id.replace('.', '/')
-    metadata_url = f"{MAVEN_CENTRAL}{group_path}/{artifact_id}/maven-metadata.xml"
-    
-    try:
-        response = requests.get(metadata_url, timeout=10)
-        
-        if response.status_code == 200:
-            return ET.fromstring(response.content)
-        
-    except (requests.RequestException, ET.ParseError) as e:
-        return None
-    
-def get_all_versions(group_id: str, artifact_id: str) -> List[str]:
-    metadata = get_maven_metadata(group_id, artifact_id)
-    
-    if metadata is None:
-        return []
-    
-    versions = []
-    
-    # Extract version information from the metadata XML
-    versioning = metadata.find("versioning")
-    if versioning is not None:
-        versions_element = versioning.find("versions")
-        if versions_element is not None:
-            for version_element in versions_element.findall("version"):
-                if not '-' in version_element.text:
-                    versions.append(version_element.text)
-    return versions
 
-    
-def get_release_frequency(metadata):
-    first_release = datetime.strptime(metadata["versions"][0]["published_at"].split('T')[0], r"%Y-%m-%d")
-    amount_of_releases = len(metadata["versions"])
-    latest_release = datetime.strptime(metadata["versions"][amount_of_releases - 1]["published_at"].split('T')[0], r"%Y-%m-%d")
+def get_versions_and_freq(group_id, artifact_id):
+    url = f"https://search.maven.org/solrsearch/select?q=g:%22{group_id}%22+AND+a:%22{artifact_id}%22&core=gav&rows=200&wt=json"
+    response = requests.get(url)
+    data =response.json()
+    versions = [
+        {
+            "version": doc["v"],
+            "date": datetime.fromtimestamp(doc["timestamp"] / 1000)
+        }
+        for doc in data["response"]["docs"]
+    ]
+    versions.sort(key=lambda x: x['date'])
+    frequencies = [
+        (versions[i]['date'] - versions[i-1]['date']).days
+        for i in range(1, len(versions))
+    ]
+    freq = sum(frequencies) / len(frequencies) if len(frequencies) > 0 else 0
 
-    if amount_of_releases < 2:
-        # Can't compute frequency
-        return 0
-    
-    time_span = (latest_release - first_release).days
-
-    frequency = time_span / (amount_of_releases - 1)
-    return frequency
+    return versions, freq
     
 def get_properties(group_id: str, artifact_id: str):
     metadata = get_library_metadata(group_id, artifact_id)
-    versions = get_all_versions(group_id, artifact_id)
+    versions, freq = get_versions_and_freq(group_id, artifact_id)
 
     if metadata is None:
         print("[ERROR] Could not find artifact metadata on libraries.io.")
         return None, -1, versions
     else:
         metadata = json.loads(metadata)
-        release_frequency = get_release_frequency(metadata)
         repository_url = metadata["repository_url"]
 
-    
     if "github.com" in repository_url:
-        return repository_url, release_frequency, versions
-    return None, release_frequency, versions
+        return repository_url, freq, versions
+    return None, freq, versions
 
 def main():
     parser = create_parser()

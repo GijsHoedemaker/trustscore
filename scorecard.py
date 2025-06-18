@@ -42,6 +42,7 @@ def run_scorecard(repo_url, full_score):
     
     if result.stdout == b"":
         print("[ERROR] An error occured while trying to run scorecard. Make sure go is installed and docker is running.")
+        print(result.stderr)
         sys.exit(1)
     print("[INFO] Successfully ran scorecard.")
 
