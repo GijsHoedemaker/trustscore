@@ -21,15 +21,20 @@ def run_scorecard(repo_url, full_score):
     # Requirements: go installed and docker running
     # TODO: Implement checks for go and docker
 
-    # Pull scorecard
-    print("[INFO] Pulling scorecard image...")
-    result = subprocess.run(["docker", "pull", "gcr.io/openssf/scorecard:stable"], capture_output=True)
-    if result.stderr != b"":
-        print("[ERROR] Could not pull scorecard image. Make sure docker is installed and running.")
-        print(result.stderr)
-        sys.exit(1)
+    # Check if scorecard is already pulled
+    result = subprocess.run(["docker", "images"], capture_output=True).stdout
+    if 'scorecard' in result.decode("utf-8"):
+        print("[INFO] Scorecard image is already pulled. Running...")
+    else:
+        # Pull scorecard
+        print("[INFO] Pulling scorecard image...")
+        result = subprocess.run(["docker", "pull", "gcr.io/openssf/scorecard:stable"], capture_output=True)
+        if result.stderr != b"":
+            print("[ERROR] Could not pull scorecard image. Make sure docker is installed and running.")
+            print(result.stderr)
+            sys.exit(1)
 
-    print("[INFO] Scorecard image pulled. Running scorecard...")
+        print("[INFO] Scorecard image pulled. Running scorecard...")
 
     # Run scorecard
     args = ["docker", "run",

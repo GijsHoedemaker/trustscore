@@ -137,7 +137,6 @@ def get_score(group_id: str, artifact_id: str, versions: List[str]) -> dict:
     result = {}
     result["group_id"] = group_id
     result["artifact_id"] = artifact_id
-    result["total_amounts"] = len(versions)
     result["total_score"] = sum([group["total_score"] for group in group_results]) / len(group_results) if len(group_results) > 0 else 0
     result["minor_amounts"] = sum([group["minor_amounts"] for group in group_results])
     result["minor_score"] = sum([group["minor_score"] for group in group_results]) / result["minor_amounts"] if result["minor_amounts"] > 0 else 0
@@ -145,6 +144,7 @@ def get_score(group_id: str, artifact_id: str, versions: List[str]) -> dict:
     result["patch_score"] = sum([group["patch_score"] for group in group_results]) / result["patch_amounts"] if result["patch_amounts"] > 0 else 0
     result["weird_amounts"] = sum([group["weird_amounts"] for group in group_results])
     result["weird_score"] = sum([group["weird_score"] for group in group_results]) / result["weird_amounts"] if result["weird_amounts"] > 0 else 0
+    result["total_amounts"] = result["minor_amounts"] + result["patch_amounts"] + result["weird_amounts"]
     
 
     print(f"[INFO] Successfully received compatibility scores.")

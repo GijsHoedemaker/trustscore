@@ -47,7 +47,7 @@ def get_library_metadata(group_id: str, artifact_id: str):
             return None
         
     except (requests.RequestException, ET.ParseError) as e:
-        print("whoops")
+        print("whoops: {e}")
         return None
 
 def get_versions_and_freq(group_id, artifact_id):
@@ -67,6 +67,7 @@ def get_versions_and_freq(group_id, artifact_id):
         for i in range(1, len(versions))
     ]
     freq = sum(frequencies) / len(frequencies) if len(frequencies) > 0 else 0
+    versions = [v['version'] for v in versions]
 
     return versions, freq
     
@@ -76,7 +77,7 @@ def get_properties(group_id: str, artifact_id: str):
 
     if metadata is None:
         print("[ERROR] Could not find artifact metadata on libraries.io.")
-        return None, -1, versions
+        return None, freq, versions
     else:
         metadata = json.loads(metadata)
         repository_url = metadata["repository_url"]
@@ -107,10 +108,17 @@ def main():
 
     score, compatibility = results
 
+    if not args.full_scorecard and score is not None:
+        total_score = 0.3 * score/10 + 0.3 * (1 - (frequency / 365)) + 0.25 * compatibility['patch_score'] + 0.15 * compatibility['minor_score']
+    else:
+        total_score = 0.429 * (1 - (frequency / 365)) + 0.357 * compatibility['patch_score'] + 0.214 * compatibility['minor_score']
+
+    print(f"Total combined score: {total_score}\n")
+
     if not score is None: 
         print(f"Scorecard score: {score}")
     print("Compatibility scores:")
-    print(f"\t{round(100 * compatibility["total_score"], 2)}% of all updates ({compatibility['total_amounts'] - 1}) are backward-compatible.")
+    print(f"\t{round(100 * compatibility["total_score"], 2)}% of all updates ({compatibility['total_amounts']}) are backward-compatible.")
     print(f"\t{round(100 * compatibility["minor_score"], 2)}% of minor updates ({compatibility['minor_amounts']}) are backward-compatible.")
     print(f"\t{round(100 *compatibility["patch_score"], 2)}% of patch updates ({compatibility["patch_amounts"]}) are backward-compatible.")
     print(f"\t{round(100 *compatibility["weird_score"], 2)}% of non-semver updates ({compatibility["weird_amounts"]}) are backward-compatible.")
