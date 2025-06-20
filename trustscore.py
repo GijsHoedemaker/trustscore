@@ -47,13 +47,17 @@ def get_library_metadata(group_id: str, artifact_id: str):
             return None
         
     except (requests.RequestException, ET.ParseError) as e:
-        print("whoops: {e}")
+        print(f"An error occured when fetching libaries.io metadata: {e}")
         return None
 
 def get_versions_and_freq(group_id, artifact_id):
     url = f"https://search.maven.org/solrsearch/select?q=g:%22{group_id}%22+AND+a:%22{artifact_id}%22&core=gav&rows=200&wt=json"
     response = requests.get(url)
-    data =response.json()
+    if response.status_code != 200:
+        print(f"[ERROR] Artifact not found.")
+        sys.exit(1)
+        
+    data = response.json()
     versions = [
         {
             "version": doc["v"],
@@ -108,12 +112,18 @@ def main():
 
     score, compatibility = results
 
-    if not args.full_scorecard and score is not None:
-        total_score = 0.3 * score/10 + 0.3 * (1 - (frequency / 365)) + 0.25 * compatibility['patch_score'] + 0.15 * compatibility['minor_score']
-    else:
-        total_score = 0.429 * (1 - (frequency / 365)) + 0.357 * compatibility['patch_score'] + 0.214 * compatibility['minor_score']
+    w1 = 0.35
+    w2 = 0.2
+    w3_1 = 0.25
+    w3_2 = 0.20
+    f = (1 - w1)
 
-    print(f"Total combined score: {total_score}\n")
+    if not args.full_scorecard and score is not None:
+        total_score = w1 * score/10 + w2 * (1 - (frequency / 365)) + w3_1 * compatibility['patch_score'] + w3_2 * compatibility['minor_score']
+    else:
+        total_score = w2/f * (1 - (frequency / 365)) + w3_1/f * compatibility['patch_score'] + w3_2/f * compatibility['minor_score']
+
+    print(f"Total combined score: {round(10 * total_score, 2)}\n")
 
     if not score is None: 
         print(f"Scorecard score: {score}")
